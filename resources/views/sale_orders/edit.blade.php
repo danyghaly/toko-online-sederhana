@@ -55,7 +55,7 @@
                             </div>
                             <div class="col-12">
                                 <button type="submit" class="btn btn-primary">Save</button>
-                                <a href="{{ route('products.index') }}" class="btn btn-secondary">Cancel</a>
+                                <a href="{{ route('sale_orders.index') }}" class="btn btn-secondary">Cancel</a>
                             </div>
                         </form>
                     </div>
