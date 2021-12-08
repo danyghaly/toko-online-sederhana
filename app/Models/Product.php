@@ -9,7 +9,6 @@ use Illuminate\Database\Eloquent\SoftDeletes;
 class Product extends Model
 {
     use HasFactory;
-    use SoftDeletes;
 
     protected $primaryKey = 'sku';
     protected $keyType = 'string';
@@ -18,8 +17,28 @@ class Product extends Model
         'sku',
         'name',
         'price',
-        'stock',
     ];
+    protected $casts = [
+        'price' => 'float',
+    ];
+
+    public function purchaseProducts()
+    {
+        return $this->hasMany(PurchaseProduct::class, 'sku', 'sku');
+    }
+
+    public function saleProducts()
+    {
+        return $this->hasMany(SaleProduct::class, 'sku', 'sku');
+    }
+
+    public function getStockAttribute()
+    {
+        $purchases = $this->purchaseProducts->sum('quantity');
+        $sales = $this->saleProducts->sum('quantity');
+
+        return $purchases - $sales;
+    }
 
     public function setSkuAttribute($value)
     {
