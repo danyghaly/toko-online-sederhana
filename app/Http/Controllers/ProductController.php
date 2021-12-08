@@ -3,11 +3,17 @@
 namespace App\Http\Controllers;
 
 use App\Models\Product;
+use http\Exception\BadConversionException;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Validator;
 
 class ProductController extends Controller
 {
+    public function __construct()
+    {
+        $this->authorizeResource(Product::class, 'product');
+    }
+
     /**
      * Display a listing of the resource.
      *
@@ -15,7 +21,14 @@ class ProductController extends Controller
      */
     public function index()
     {
-        $products = Product::all();
+        $products = Product::with([
+            'purchaseProducts',
+            'saleProducts' => function ($query) {
+                $query->whereHas('saleOrder', function ($query) {
+                    $query->approve();
+                });
+            }
+        ])->get();
 
         return response()->view('products.index', ['products' => $products]);
     }
@@ -48,12 +61,11 @@ class ProductController extends Controller
             return back()->withErrors($validator)->withInput();
         }
 
-        $product = new Product([
+        $product = Product::create([
             'sku' => $request->sku,
             'name' => $request->name,
             'price' => $request->price,
         ]);
-        $product->save();
 
         return response()->redirectToRoute('products.index');
     }
@@ -61,48 +73,57 @@ class ProductController extends Controller
     /**
      * Display the specified resource.
      *
-     * @param  int  $id
+     * @param  \App\Models\Product  $product
      * @return \Illuminate\Http\Response
      */
-    public function show($id)
+    public function show(Product $product)
     {
-
+        //
     }
 
     /**
      * Show the form for editing the specified resource.
      *
-     * @param  int  $id
+     * @param  \App\Models\Product  $product
      * @return \Illuminate\Http\Response
      */
-    public function edit($id)
+    public function edit(Product $product)
     {
-
+        return response()->view('products.edit', ['product' => $product]);
     }
 
     /**
      * Update the specified resource in storage.
      *
      * @param  \Illuminate\Http\Request  $request
-     * @param  int  $id
+     * @param  \App\Models\Product  $product
      * @return \Illuminate\Http\Response
      */
-    public function update(Request $request, $id)
+    public function update(Request $request, Product $product)
     {
+        $request->validate([
+           'sku' => ['required', 'string', 'exists:products,sku'],
+            'name' => ['required', 'string'],
+            'price' => ['required', 'integer', 'min:0'],
+        ]);
 
+        $product->name = $request->name;
+        $product->price = $request->price;
+        $product->save();
+
+        return response()->redirectToRoute('products.index');
     }
 
     /**
      * Remove the specified resource from storage.
      *
-     * @param  int  $id
+     * @param  \App\Models\Product  $product
      * @return \Illuminate\Http\Response
      */
-    public function destroy($id)
+    public function destroy(Product $product)
     {
-        $product = Product::findOrFail($id);
-        $product->delte();
+        $product->delete();
 
-        return response()->redirectToRoute('product.index');
+        return response()->redirectToRoute('products.index');
     }
 }
